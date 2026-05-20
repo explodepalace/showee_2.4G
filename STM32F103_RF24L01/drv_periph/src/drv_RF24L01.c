@@ -577,13 +577,13 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
 	{
 		drv_delay_us( 100 );
 
-		if( 30 == l_100MsTimes++ )		//3s没接收过数据，重新初始化模块
-		{
-			NRF24L01_Gpio_Init( );
-			RF24L01_Init( );
-			RF24L01_Set_Mode( MODE_RX );
-			break;
-		}
+		// if( 30 == l_100MsTimes++ )		//3s没接收过数据，重新初始化模块
+		// {
+		// 	NRF24L01_Gpio_Init( );
+		// 	RF24L01_Init( );
+		// 	RF24L01_Set_Mode( MODE_RX );
+		// 	break;
+		// }
 	}
 	
 	l_Status = NRF24L01_Read_Reg( STATUS );		//读状态寄存器

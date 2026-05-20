@@ -15,6 +15,14 @@
 
 
 #include "drv_uart.h"
+#include "misc.h"
+
+
+#define UART_RX_BUFFER_SIZE		100
+
+static volatile uint8_t s_UartRxBuffer[ UART_RX_BUFFER_SIZE ] = { 0 };
+static volatile uint8_t s_UartRxLength = 0;
+static volatile uint8_t s_UartRxFrameReady = 0;
 
 
 /**
@@ -28,6 +36,7 @@ void drv_uart_init( uint32_t UartBaudRate )
 {
 	GPIO_InitTypeDef	UartGpioInitStructer;
 	USART_InitTypeDef	UartinitStructer;
+	NVIC_InitTypeDef	UartNvicInitStructer;
 	
 	//在配置过程中，为防止TX RX不再同一个端口上，增强可移植性，固分开配置
 	//初始化串口TX RX 引脚 
@@ -64,6 +73,14 @@ void drv_uart_init( uint32_t UartBaudRate )
 	
 	USART_Cmd( UART_PORT, DISABLE );									//失能外设
 	USART_Init( UART_PORT, &UartinitStructer );							//初始化外设
+	USART_ITConfig( UART_PORT, USART_IT_RXNE, ENABLE );
+
+	UartNvicInitStructer.NVIC_IRQChannel = USART1_IRQn;
+	UartNvicInitStructer.NVIC_IRQChannelPreemptionPriority = 1;
+	UartNvicInitStructer.NVIC_IRQChannelSubPriority = 1;
+	UartNvicInitStructer.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init( &UartNvicInitStructer );
+
 	USART_Cmd( UART_PORT, ENABLE );										//使能外设	
 }
 
@@ -94,24 +111,66 @@ void drv_uart_tx_bytes( uint8_t* TxBuffer, uint8_t Length )
   */
 uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer )
 {
+	uint8_t l_Index = 0;
 	uint8_t l_RxLength = 0;
-	uint32_t l_UartRxTimOut = 0x7FFFFF;
-	
-	while( l_UartRxTimOut-- )			//等待查询串口数据
+
+	if( 0 == s_UartRxFrameReady )
 	{
-		if( RESET != USART_GetFlagStatus( UART_PORT, USART_FLAG_RXNE ))
+		return 0;
+	}
+
+	USART_ITConfig( UART_PORT, USART_IT_RXNE, DISABLE );
+	l_RxLength = s_UartRxLength;
+	for( l_Index = 0; l_Index < l_RxLength; l_Index++ )
+	{
+		RxBuffer[ l_Index ] = s_UartRxBuffer[ l_Index ];
+	}
+	s_UartRxLength = 0;
+	s_UartRxFrameReady = 0;
+	USART_ITConfig( UART_PORT, USART_IT_RXNE, ENABLE );
+
+	return l_RxLength;
+}
+
+void USART1_IRQHandler( void )
+{
+	uint8_t l_Char;
+
+	if( RESET != USART_GetITStatus( USART1, USART_IT_RXNE ) )
+	{
+		l_Char = (uint8_t)USART1->DR;
+
+		if( 0 != s_UartRxFrameReady )
 		{
-			*RxBuffer = (uint8_t)UART_PORT->DR;
-			RxBuffer++;
-			l_RxLength++;
-			l_UartRxTimOut = 0x7FFFFF;	//接收到一个字符，回复等待时间
+			return;
 		}
-		if( 100 == l_RxLength )
+
+		if( '\r' == l_Char )
 		{
-			break;		//不能超过100个字节
+			if( 0 != s_UartRxLength )
+			{
+				s_UartRxFrameReady = 1;
+			}
+			return;
+		}
+
+		if( '\n' == l_Char )
+		{
+			return;
+		}
+
+		if( s_UartRxLength < UART_RX_BUFFER_SIZE )
+		{
+			s_UartRxBuffer[ s_UartRxLength++ ] = l_Char;
+			if( UART_RX_BUFFER_SIZE == s_UartRxLength )
+			{
+				s_UartRxFrameReady = 1;
+			}
+		}
+		else
+		{
+			s_UartRxFrameReady = 1;
 		}
 	}
-	
-	return l_RxLength;					//等待超时，数据接收完成
 }
 

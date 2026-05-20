@@ -70,8 +70,6 @@ int main( void )
 //*****************************************************************************************//
 //=========================================================================================//	
 	drv_uart3_printf("Tx mode!!!");
-	//按键初始化
-	drv_button_init( );
 	
 	RF24L01_Set_Mode( MODE_TX );		//发送模式
 	while( 1 )	
@@ -90,8 +88,9 @@ int main( void )
 
 			if( 0 != i )
 			{
+				drv_uart3_printf("enter:\n");
 				NRF24L01_TxPacket( g_UartRxBuffer, i );
-				led_flash_fast( );
+				drv_uart3_printf("exit:\n");
 			}
 		}
 	}
@@ -109,8 +108,10 @@ int main( void )
 		i = NRF24L01_RxPacket( g_RF24L01RxBuffer );
 		if( 0 != i )
 		{
+			drv_uart3_printf("enter:\n");
 			led_flash_slow( );
 			drv_uart_tx_bytes( g_RF24L01RxBuffer, i );
+			drv_uart3_printf("enter:\n");
 		}
 	}
 		
