@@ -9,6 +9,8 @@
 
 #include "drv_uart3.h"
 
+#if UART3_DEBUG_ENABLE
+
 /**
   * @brief :UART3初始化
   * @param :@BaudRate:串口波特率
@@ -86,3 +88,5 @@ void drv_uart3_printf( const char* fmt, ... )
 		drv_uart3_tx_bytes((uint8_t*)buffer, len);
 	}
 }
+
+#endif

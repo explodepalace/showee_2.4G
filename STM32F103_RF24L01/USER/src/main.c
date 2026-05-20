@@ -37,7 +37,9 @@ int main( void )
 
 	//串口初始化
 	drv_uart_init( 115200 );
+#if UART3_DEBUG_ENABLE
 	drv_uart3_init( 115200 );
+#endif
 
 	//延时初始化
 	drv_delay_init( );
@@ -88,9 +90,7 @@ int main( void )
 
 			if( 0 != i )
 			{
-				drv_uart3_printf("enter:\n");
 				NRF24L01_TxPacket( g_UartRxBuffer, i );
-				drv_uart3_printf("exit:\n");
 			}
 		}
 	}
@@ -109,7 +109,6 @@ int main( void )
 		if( 0 != i )
 		{
 			drv_uart3_printf("enter:\n");
-			led_flash_slow( );
 			drv_uart_tx_bytes( g_RF24L01RxBuffer, i );
 			drv_uart3_printf("enter:\n");
 		}
