@@ -23,6 +23,7 @@
 #include "drv_uart3.h"
 #include "drv_button.h"
 #include "drv_delay.h"
+#include "perf_time.h"
 #include "drv_led.h"
 
 

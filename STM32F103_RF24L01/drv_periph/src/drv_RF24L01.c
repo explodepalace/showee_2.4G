@@ -19,6 +19,14 @@
 #include "drv_delay.h"
 #include "drv_uart3.h"
 
+#define RF24_DETAIL_LOG_ENABLE		0
+
+#if RF24_DETAIL_LOG_ENABLE
+#define RF24_DETAIL_LOG(...)		drv_uart3_printf(__VA_ARGS__)
+#else
+#define RF24_DETAIL_LOG(...)		((void)0)
+#endif
+
 
 const char *g_ErrorString = "RF24L01 is not find !...";
 
@@ -544,21 +552,21 @@ uint8_t NRF24L01_TxPacket( uint8_t *txbuf, uint8_t Length )
 	l_Status = NRF24L01_Read_Reg(STATUS);						//读状态寄存器
 	NRF24L01_Write_Reg( STATUS, l_Status );						//清除TX_DS或MAX_RT中断标志
 
-	drv_uart3_printf("[TX] Status=0x%02X Len=%d Time=%dms\r\n", l_Status, Length, l_MsTimes);
+	RF24_DETAIL_LOG("[TX] Status=0x%02X Len=%d Time=%dms\r\n", l_Status, Length, l_MsTimes);
 
 	if( l_Status & MAX_TX )	//达到最大重发次数
 	{
-		drv_uart3_printf("[TX_ERR] MAX_RT - No ACK received\r\n");
+		RF24_DETAIL_LOG("[TX_ERR] MAX_RT - No ACK received\r\n");
 		NRF24L01_Write_Reg( FLUSH_TX,0xff );	//清除TX FIFO寄存器
 		return MAX_TX; 
 	}
 	if( l_Status & TX_OK )	//发送完成
 	{
-		drv_uart3_printf("[TX_OK] Packet sent successfully\r\n");
+		RF24_DETAIL_LOG("[TX_OK] Packet sent successfully\r\n");
 		return TX_OK;
 	}
 	
-	drv_uart3_printf("[TX_ERR] Unknown error\r\n");
+	RF24_DETAIL_LOG("[TX_ERR] Unknown error\r\n");
 	return 0xFF;	//其他原因发送失败
 }
 
@@ -589,7 +597,7 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
 	l_Status = NRF24L01_Read_Reg( STATUS );		//读状态寄存器
 	NRF24L01_Write_Reg( STATUS,l_Status );		//清中断标志
 
-	drv_uart3_printf("[RX] Status=0x%02X Time=%dms\r\n", l_Status, l_100MsTimes);
+	RF24_DETAIL_LOG("[RX] Status=0x%02X Time=%dms\r\n", l_Status, l_100MsTimes);
 
 	if( l_Status & RX_OK)	//接收到数据
 	{
@@ -597,16 +605,16 @@ uint8_t NRF24L01_RxPacket( uint8_t *rxbuf )
 		if( l_RxLength == 0 || l_RxLength > 32 )
 		{
 			NRF24L01_Flush_Rx_Fifo( );
-			drv_uart3_printf("[RX_ERR] Invalid payload width %d\r\n", l_RxLength );
+			RF24_DETAIL_LOG("[RX_ERR] Invalid payload width %d\r\n", l_RxLength );
 			return 0;
 		}
 		NRF24L01_Read_Buf( RD_RX_PLOAD,rxbuf,l_RxLength );	//接收到数据
-		drv_uart3_printf("[RX_OK] Received %d bytes\r\n", l_RxLength);
+		RF24_DETAIL_LOG("[RX_OK] Received %d bytes\r\n", l_RxLength);
 		NRF24L01_Flush_Rx_Fifo( );
 		return l_RxLength;
 	}
 
-	drv_uart3_printf("[RX_TIMEOUT] No data received\r\n");
+	RF24_DETAIL_LOG("[RX_TIMEOUT] No data received\r\n");
 	return 0;				//没有收到数据	
 }
 

@@ -16,6 +16,7 @@
 
 #include "drv_uart.h"
 #include "misc.h"
+#include "perf_time.h"
 
 
 #define UART_RX_BUFFER_SIZE		100
@@ -23,6 +24,7 @@
 static volatile uint8_t s_UartRxBuffer[ UART_RX_BUFFER_SIZE ] = { 0 };
 static volatile uint8_t s_UartRxLength = 0;
 static volatile uint8_t s_UartRxFrameReady = 0;
+static volatile uint32_t s_UartRxDoneTick = 0;
 
 
 /**
@@ -73,6 +75,8 @@ void drv_uart_init( uint32_t UartBaudRate )
 	
 	USART_Cmd( UART_PORT, DISABLE );									//失能外设
 	USART_Init( UART_PORT, &UartinitStructer );							//初始化外设
+	USART_ITConfig( UART_PORT, USART_IT_RXNE, ENABLE );
+
 	USART_ITConfig( UART_PORT, USART_IT_RXNE, ENABLE );
 
 	UartNvicInitStructer.NVIC_IRQChannel = USART1_IRQn;
@@ -132,6 +136,11 @@ uint8_t drv_uart_rx_bytes( uint8_t* RxBuffer )
 	return l_RxLength;
 }
 
+uint32_t drv_uart_rx_done_us( void )
+{
+	return perf_time_tick_to_us( s_UartRxDoneTick );
+}
+
 void USART1_IRQHandler( void )
 {
 	uint8_t l_Char;
@@ -149,6 +158,7 @@ void USART1_IRQHandler( void )
 		{
 			if( 0 != s_UartRxLength )
 			{
+				s_UartRxDoneTick = perf_time_now_tick( );
 				s_UartRxFrameReady = 1;
 			}
 			return;

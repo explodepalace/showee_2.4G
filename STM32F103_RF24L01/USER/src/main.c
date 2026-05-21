@@ -40,6 +40,7 @@ int main( void )
 #if UART3_DEBUG_ENABLE
 	drv_uart3_init( 115200 );
 #endif
+	perf_time_init( );
 
 	//延时初始化
 	drv_delay_init( );
@@ -90,7 +91,19 @@ int main( void )
 
 			if( 0 != i )
 			{
-				NRF24L01_TxPacket( g_UartRxBuffer, i );
+				uint32_t l_TxStartUs = perf_time_now_us( );
+				uint32_t l_UartDoneUs = drv_uart_rx_done_us( );
+				uint8_t l_TxStatus;
+				uint32_t l_TxEndUs;
+
+				l_TxStatus = NRF24L01_TxPacket( g_UartRxBuffer, i );
+				l_TxEndUs = perf_time_now_us( );
+				drv_uart3_printf("[TX_TIME] len=%d uart_to_main=%luus rf_tx=%luus total=%luus status=0x%02X\r\n",
+					i,
+					(unsigned long)( l_TxStartUs - l_UartDoneUs ),
+					(unsigned long)( l_TxEndUs - l_TxStartUs ),
+					(unsigned long)( l_TxEndUs - l_UartDoneUs ),
+					l_TxStatus );
 			}
 		}
 	}
@@ -105,12 +118,21 @@ int main( void )
 	RF24L01_Set_Mode( MODE_RX );		//接收模式
 	while( 1 )
 	{
+		uint32_t l_RxStartUs = perf_time_now_us( );
+		uint32_t l_RxEndUs;
+		uint32_t l_UartEndUs;
+
 		i = NRF24L01_RxPacket( g_RF24L01RxBuffer );
+		l_RxEndUs = perf_time_now_us( );
 		if( 0 != i )
 		{
-			drv_uart3_printf("enter:\n");
 			drv_uart_tx_bytes( g_RF24L01RxBuffer, i );
-			drv_uart3_printf("enter:\n");
+			l_UartEndUs = perf_time_now_us( );
+			drv_uart3_printf("[RX_TIME] len=%d rf_rx=%luus uart_out=%luus total=%luus\r\n",
+				i,
+				(unsigned long)( l_RxEndUs - l_RxStartUs ),
+				(unsigned long)( l_UartEndUs - l_RxEndUs ),
+				(unsigned long)( l_UartEndUs - l_RxStartUs ));
 		}
 	}
 		
